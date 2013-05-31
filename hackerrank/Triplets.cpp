@@ -7,25 +7,62 @@
 using namespace std;
 
 
+// Binary indexed tree.
+// Lets us compute how many elements <= i were added to the tree
+// in logarithmic time.
+class BIT
+{
+public:
+  BIT(size_t max)
+    : mTree(max) {
+  }
+
+  void add(unsigned int i) {
+    auto n = mTree.size();
+    for (; i < n; i |= i + 1) {
+      mTree[i]++;
+    }
+  }
+  
+  unsigned int count(unsigned int left, unsigned int right) {
+    return count(right) - count(left-1);
+  }
+
+private:
+  unsigned int count(int ind) {
+    unsigned int sum = 0;
+    while (ind >= 0) {
+      sum += mTree[ind];
+      ind &= ind + 1;
+      ind--;
+    }
+    return sum;
+  }
+
+  vector<unsigned int> mTree;
+};
+
+
+
 // Without changing the order, replace the numbers in d by consecutive ones.
-// This way, we make sure the biggest is 10^5, and can use them as indices.
-void renumber(vector<unsigned int> &d)
+// This way, we make sure the biggest is N<=10^5, and can use them as indices.
+void renumber(vector<unsigned int> &d) // O(N * log(N))
 {
   auto N = d.size();
   map<unsigned int, unsigned int> transform;
 
-  for (auto i = 0; i < N; i++) {
-    transform[d[i]] = 0;
+  for (auto i = 0; i < N; i++) { // O(N)
+    transform[d[i]] = 0; // O(log(N))
   }
 
   unsigned int num = 0;
-  for (auto &it : transform) {
+  for (auto &it : transform) { // O(N)
     it.second = num;
     num++;
   }
 
-  for (unsigned int i = 0; i < N; i++) {
-    d[i] = transform[d[i]];
+  for (unsigned int i = 0; i < N; i++) { // O(N)
+    d[i] = transform[d[i]]; // O(log(N))
   }
 }
 
@@ -43,7 +80,7 @@ unsigned long long int solve(vector<unsigned int> &d)
     return 0L;
   }
 
-  renumber(d);
+  renumber(d); // O(N * log(N))
 
   // hasOneLater[i] is true if there is j > i such as d[i] == d[j]
   vector<bool> hasOneLater(N);
@@ -51,120 +88,67 @@ unsigned long long int solve(vector<unsigned int> &d)
   // hasOneLater[i] is true if there is j < i such as d[i] == d[j]
   vector<bool> hasOneEarlier(N);
 
-  // positions[d[i]] = i (given a value in d, get its earliest position)
-  vector<int> positions(N);
-  for (auto i = 0; i < N; i++) {
-    positions[i] = -1;
+  // first[d[i]] = i (given a value in d, get its earliest position)
+  vector<int> first(N);
+
+  // last[d[i]] = i (given a value in d, get its last position)
+  vector<int> last(N);
+
+  for (auto i = 0; i < N; i++) { // O(N)
+    first[i] = -1;
   }
-  for (auto i = 0; i < N; i++) {
-    if (positions[d[i]] == -1) {
-      positions[d[i]] = i;
+  for (auto i = 0; i < N; i++) { // O(N)
+    last[d[i]] = i;
+
+    if (first[d[i]] == -1) { // O(log(N))
+      first[d[i]] = i;
     } else {
       hasOneEarlier[i] = true;
-      hasOneLater[positions[d[i]]] = true;
+      hasOneLater[first[d[i]]] = true;
     }
   }
 
-  // maxs[i] : max of the i-th block of 100 numbers
-  vector<unsigned int> maxs(N/100+1);
-  for (unsigned int i = 0; i < N; i++) {
-    maxs[i/100] = max(maxs[i/100], d[i]);
+
+  // smaller[i] = number of j < i such as:
+  // * d[j] < d[i]
+  // * !hasOneEarlier[j]
+  // * !hasOneEarlier[i] or j > first[d[i]]
+  vector<unsigned int> smaller(N);
+  {
+    BIT b(N);
+    for (auto i = 0; i < N; i++) { // O(N)
+      if (!hasOneEarlier[i]) {
+	b.add(d[i]); // O(log(N))
+      }
+      smaller[i] = b.count(0, d[i]-1);// O(log(N))
+      if (hasOneEarlier[i])  {
+	smaller[i] -= smaller[first[d[i]]];
+      }
+    }
   }
 
-  // doublets[i] = number of j such as:
-  // * i < j
-  // * d[i] < d[j]
-  // * !hasOneLater[j] (in this case j will be the third element of the
-  //   triplet, so it should only use the latest one)
-  vector<unsigned int> doublets(N);
-  doublets[N-1] = 0;
-  unsigned int i = N-1;
-  do {
-    i--;
-
-    doublets[i] = 0;
-
-    unsigned int block = i/100;
-    if (maxs[block] > d[i]) {
-      unsigned int blockEnd = 100 * (block + 1);
-      if (blockEnd > N) blockEnd = N;
-      for (unsigned int j = i+1; j < blockEnd; j++) {
-	if (d[i] < d[j] && !hasOneLater[j]) {
-	  doublets[i]++;
-	}
+  // larger[i] = number of j > i such as:
+  // * d[j] > d[i]
+  // * !hasOneLater[j]
+  vector<unsigned int> larger(N);
+  {
+    BIT b(N);
+    for (int i = N-1; i >= 0; i--) { // O(N)
+      if (!hasOneLater[i]) {
+	b.add(d[i]); // O(log(N))
       }
+      larger[i] = b.count(d[i]+1, N-1); // O(log(N))
     }
-    for (block++; block < N/100+1; block++) {
-      if (maxs[block] <= d[i]) {
-	continue;
-      }
+  }
 
-      unsigned int blockEnd = 100 * (block + 1);
-      if (blockEnd > N) blockEnd = N;
-      for (unsigned int j = 100*block; j < blockEnd; j++) {
-	if (d[i] < d[j] && !hasOneLater[j]) {
-	  doublets[i]++;
-	}
-      }
-    }
-  } while (i > 0);
-
-
-  unsigned long long int total = 0;
-  i = N-3;
-  do {
-    i--;
-
-    if (hasOneEarlier[i]) {
-      // we should not start the triplet with i
-      continue;
-    }
-
-    // let's count the triplets starting with i.
-    // We iterate over the second element of the triplet
-
-    unsigned int block = i/100;
-    if (maxs[block] > d[i]) {
-      unsigned int blockEnd = 100 * (block + 1);
-      if (blockEnd > N) blockEnd = N;
-      for (unsigned int j = i+1; j < blockEnd; j++) {
-	if (d[i] >= d[j]) {
-	  continue;
-	}
-
-	// if j is not the first, we can only use it if i is > than the first
-	if (hasOneEarlier[j] && positions[d[j]] > i) {
-	  continue;
-	}
-
-	total += doublets[j];
-      }
-    }
-    for (block++; block < N/100+1; block++) {
-      if (maxs[block] <= d[i]) {
-	continue;
-      }
-
-      unsigned int blockEnd = 100 * (block + 1);
-      if (blockEnd > N) blockEnd = N;
-      for (unsigned int j = 100*block; j < blockEnd; j++) {
-	if (d[i] >= d[j]) {
-	  continue;
-	}
-
-	// if j is not the first, we can only use it if i is > than the first
-	if (hasOneEarlier[j] && positions[d[j]] > i) {
-	  continue;
-	}
-
-	total += doublets[j];
-      }
-    }
-  } while (i > 0);
-
-  return total;
+  // Number of triplets = SUM_i(larger[i] * smaller[i])
+  unsigned long long int res = 0;
+  for (auto i = 0; i < N; i++) { // O(N)
+    res += smaller[i] * larger[i];
+  }
+  
+  return res;
 }
-
 
 int main() {
     unsigned int N;
