@@ -4,7 +4,7 @@ import math
 import collections
 import functools
 
-sys.setrecursionlimit(1000)
+sys.setrecursionlimit(10000)
 
 class memoized(object):
     def __init__(self, func):
