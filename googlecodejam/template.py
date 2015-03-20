@@ -36,11 +36,13 @@ def modPow(b, e, mod):
         b = (b * b) % mod
     return res
 
+def inputInts():
+    return map(int, raw_input().split())
 
 
 T = int(raw_input())
 for testId in range(T):
-    N, M = map(int, raw_input().split())
+    N, M = inputInts()
 
     res = 0
 
