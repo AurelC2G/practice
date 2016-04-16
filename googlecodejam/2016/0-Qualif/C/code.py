@@ -32,7 +32,9 @@ def inputInts():
 
 @memoized
 def findDivider(n):
-    for i in xrange(2, int(math.sqrt(n) + 1)):
+    for i in xrange(2, 1000):
+        if i >= n:
+            return False
         if n % i == 0:
             return i
     return False
