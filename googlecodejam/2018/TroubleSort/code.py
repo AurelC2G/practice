@@ -9,22 +9,14 @@ sys.setrecursionlimit(10000)
 def inputInts():
     return map(int, raw_input().split())
 
-
-def TroubleSort(L):
-    done = False
-    while not done:
-        done = True
-        for i in xrange(len(L)-2):
-            if L[i] > L[i+2]:
-                done = False
-                L[i],L[i+2] = L[i+2],L[i]
-    return L
-
 def solve(V):
-    V = TroubleSort(V)
-    for i in xrange(len(V)-1):
-        if V[i] > V[i+1]:
-            return i
+    evens = sorted(V[0::2])
+    odds = sorted(V[1::2])
+    for i in xrange(len(evens)):
+        if i < len(odds) and evens[i] > odds[i]:
+            return 2*i
+        if i+1 < len(evens) and odds[i] > evens[i+1]:
+            return 2*i + 1
 
 T = int(raw_input())
 for testId in range(T):
