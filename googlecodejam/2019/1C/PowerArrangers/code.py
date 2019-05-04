@@ -9,6 +9,8 @@ def inputInts():
 
 
 def ask(n):
+    global peeks
+    peeks += 1
     print n
     sys.stdout.flush()
     ans = raw_input()
@@ -24,22 +26,42 @@ def reply(res):
 
 T, F = inputInts()
 for testId in range(T):
-    res = 0
 
     S = set()
     for perm in itertools.permutations('ABCDE'):
         S.add(''.join(perm))
 
-    nextLook = 0
+    peeks = 0
 
-    while len(S) > 1:
-        remaining = list(S)
-        for guess in xrange(5):
-            peek = ask(nextLook * 5 + guess + 1)
-            remaining = filter(lambda w: w[guess] == peek, remaining)
-            if (len(remaining) == 1):
-                S.remove(remaining[0])
+    res = ''
+
+    expected = [24, 6, 2, 1, 1]
+    remaining = range(119)
+    for guess in xrange(4):
+        results = {
+            c: []
+            for c in 'ABCDE'
+            if c not in res
+        }
+        for n in remaining:
+            peek = ask(n * 5 + guess + 1)
+            results[peek].append(n)
+
+        sys.stderr.write(str({
+            c: len(v)
+            for c,v in results.iteritems()
+        }) + "\n")
+
+        for c,v in results.iteritems():
+            if len(v) != expected[guess]:
+                res += c
+                remaining = v
                 break
-        nextLook += 1
 
-    reply(list(S)[0])
+    for c in 'ABCDE':
+        if c not in res:
+            res += c
+            break
+
+    sys.stderr.write("Found {} in {}\n".format(res, peeks))
+    reply(res)
