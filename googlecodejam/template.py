@@ -7,14 +7,13 @@ import functools
 sys.setrecursionlimit(10000)
 
 def inputInts():
-    return map(int, raw_input().split())
+    return list(map(int, input().split()))
 
 
-T = int(raw_input())
+T = int(input())
 for testId in range(T):
     N, M = inputInts()
 
     res = 0
 
-
-    print "Case #{:d}: {:d}".format(testId+1, res)
+    print("Case #{:d}: {:d}".format(testId+1, res))
