@@ -6,62 +6,79 @@ import functools
 
 sys.setrecursionlimit(10000)
 
-#def nextRoaring(y):
-#    for initialLength in range(1, len(y)//2):
-#        curLen = initialLength
-#        # Bounds for the initial segment
-#        a = int(y[0:initialLength])
-#        b = 10 ** initialLength - 1
+def nextRoaringForFixedLength(y, length):
+    # All segments the same length
+    nSegments = len(y) // length
 
-#        i = curLen
-#        while XXX:
+    # Lowest possible value for the initial segment: the current digits
+    a = int(y[0:length])
+
+    for segI in range(nSegments):
+        thisNumber = int(y[(segI*length):((segI+1)*length)])
+        #print("\t", thisNumber, a+segI)
+        if thisNumber > a + segI:
+            # We have to bump the first digits to make this work
+            a += 1
+            break
+
+    if a + nSegments >= 10 ** length:
+        return None
+
+    res = ''
+    for segI in range(nSegments):
+        res += str(a+segI)
+    return int(res)
+
+def nextRoaringForDifferentLengths(y, length, largeSegments):
+    smallSegments = (len(y) - largeSegments * (length+1)) // length
+    if smallSegments < 1:
+        return None
+
+    a = 10**length - smallSegments
+    if a < 1:
+        return None
+
+    thisRes = ''
+    for segI in range(smallSegments+largeSegments):
+        thisRes += str(a+segI)
+    thisRes = int(thisRes)
+    if thisRes < int(y):
+        return None
+
+    return thisRes
+
+def nextRoaringForInitialLength(y, length):
+    res = []
+
+    if len(y) % length == 0:
+        res.append(nextRoaringForFixedLength(y, length))
+
+    for largeSegments in range(1, 10, 2):
+        res.append(nextRoaringForDifferentLengths(y, length, largeSegments))
+
+    filtered = [r for r in res if r is not None]
+    if len(filtered) == 0:
+        return None
+    return min(filtered)
+
+def nextRoaring(y):
+    #print("nextRoaring", y)
+    bestOption = None
+    for length in range(1, len(y)//2 + 1):
+        thisOption = nextRoaringForInitialLength(y, length)
+        #print("\ttry for length", length, "->", thisOption)
+        if bestOption is None:
+            bestOption = thisOption
+        elif thisOption is not None and thisOption < bestOption:
+            bestOption = thisOption
+
+    if bestOption is not None:
+        return bestOption
+
+    #print('XXX RECURSE')
+    return nextRoaring('0' + y)
             
-            
-
-
-    # At worst we can always solve this by adding one digit and have either:
-    # 10...0 10...01 if even number of digits (e.g. 1000 1001)
-    # (1) 2 3 4 5 6 7 8 9 10 11 12 13 if odd number of digits  (removing the leading digits as needed, with an odd number of single digits, but the most possible to still fit at least one pair)
-
-
-def nextRoaring(y):   
-    while True:
-        if isRoaring(y):
-            return y
-        y += 1
-
-def isRoaringWithStartingLength(s, initialLength):
-    #print("length", initialLength)
-    n = int(s[0:initialLength])
-    pos = initialLength
-
-    while pos < len(s):
-        n += 1
-        thisLen = len(str(n))
-        #print("\t", n, thisLen)
-        if pos + thisLen > len(s):
-            #print("\ttoo long")
-            return False
-        if n != int(s[pos:(pos+thisLen)]):
-            #print("\tmismatch", int(s[pos:(pos+thisLen)]))
-            return False
-        pos += thisLen
-
-    return True
-    
-def isRoaring(y):
-    s = str(y)
-
-    for initialLength in range(1, len(s) // 2 + 1):
-        if isRoaringWithStartingLength(s, initialLength):
-            return True
-
-    return False
-
-
 T = int(input())
 for testId in range(T):
     y = int(input())
-    #y = [int(c) for c in input()]
-
-    print("Case #{:d}: {:d}".format(testId+1, nextRoaring(y+1)))
+    print("Case #{:d}: {:d}".format(testId+1, nextRoaring(str(y+1))))
